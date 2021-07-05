@@ -26,9 +26,9 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
     <img src="figs/sgg_vis2.jpg" width="500">
 </div>
 <div align="left">
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;
     Left/Right: Biased/Debiased Scene Graphs.
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     Top/Bottom: Biased/Debiased Scene Graphs.
 </div>
 
