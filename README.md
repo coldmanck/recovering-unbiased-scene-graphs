@@ -29,7 +29,7 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
     &nbsp;&nbsp;&nbsp;&nbsp;
     Left/Right: Biased/Debiased Scene Graphs.
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    Top/Bottom: Biased/Debiased Scene Graphs.
+    Top/Bottom: Biased/Debiased Predicate Confidence.
 </div>
 
 ## Models
