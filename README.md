@@ -25,16 +25,20 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
 
 ## Visualizing Unbiased Scene Graphs
 (Click to see enlarged images!)
-<div align="center">
+<!-- <div align="center">
     <img src="figs/sgg_vis.jpg" width="270">
     <img src="figs/sgg_vis2.jpg" width="450">
 </div>
 <div align="left">
-    &nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;
     Left/Right: Biased/Debiased Scene Graphs.
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     Top/Bottom: Biased/Debiased Predicate Confidence.
-</div>
+</div> -->
+
+| | |
+|:-------------------------:|:-------------------------:|
+|<img width="1604" alt="Left/Right: Biased/Debiased Scene Graphs." src="figs/sgg_vis.jpg"> Left/Right: Biased/Debiased Scene Graphs |  <img width="1604" alt="screen shot 2017-08-07 at 12 18 15 pm" src="figs/sgg_vis2.jpg"> Top/Bottom: Biased/Debiased Predicate Confidences |
 
 ## Models
 The source code will be available at this repository soon. Stay tuned (by clicking "watch" this repo) :)
