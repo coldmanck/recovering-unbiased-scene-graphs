@@ -26,8 +26,8 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
 ## Visualizing Unbiased Scene Graphs
 (Click to see enlarged images!)
 <div align="center">
-    <img src="figs/sgg_vis.jpg" width="300">
-    <img src="figs/sgg_vis2.jpg" width="500">
+    <img src="figs/sgg_vis.jpg" width="270">
+    <img src="figs/sgg_vis2.jpg" width="450">
 </div>
 <div align="left">
     &nbsp;&nbsp;&nbsp;&nbsp;
