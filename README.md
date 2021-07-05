@@ -25,6 +25,12 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
     <img src="figs/sgg_vis.jpg" width="300">
     <img src="figs/sgg_vis2.jpg" width="500">
 </div>
+<div align="left">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    Left/Right: Biased/Debiased Scene Graphs.
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    Top/Bottom: Biased/Debiased Scene Graphs.
+</div>
 
 ## Models
 The source code will be available at this repository soon. Stay tuned (by clicking "watch" this repo) :)
