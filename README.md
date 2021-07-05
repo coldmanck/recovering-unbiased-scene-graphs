@@ -5,7 +5,7 @@
     
 **Recovering the Unbiased Scene Graphs from the Biased Ones**<br>
 [[Paper]]() [Poster] [Video]<br><br>
-[Meng-Jiun Chiou](http://coldmanck.github.io/)<sup>1</sup>, [Henghui Ding](https://henghuiding.github.io/)<sup>2</sup>, [Hanshu Yan](https://sites.google.com/view/hanshuyan/home)<sup>1</sup>, Changhu Wang<sup>2</sup>, [Roger Zimmermann](https://www.comp.nus.edu.sg/~rogerz/roger.html)<sup>1</sup> and [Jiashi Feng](https://sites.google.com/site/jshfeng/home)<sup>1</sup>,<br>
+[Meng-Jiun Chiou](http://coldmanck.github.io/)<sup>1</sup>, [Henghui Ding](https://henghuiding.github.io/)<sup>2</sup>, [Hanshu Yan](https://sites.google.com/view/hanshuyan/home)<sup>1</sup>, Changhu Wang<sup>2</sup>, [Roger Zimmermann](https://www.comp.nus.edu.sg/~rogerz/roger.html)<sup>1</sup> and [Jiashi Feng](https://sites.google.com/site/jshfeng/home)<sup>1</sup><br>
 <sup>1</sup>National University of Singapore <sup>2</sup>ByteDance AI Lab
 </div>
 
@@ -38,7 +38,7 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
 
 | | |
 |:-------------------------:|:-------------------------:|
-|<img width="1604" alt="Left/Right: Biased/Debiased Scene Graphs." src="figs/sgg_vis.jpg"> Left/Right: Biased/Debiased Scene Graphs |  <img width="1604" alt="screen shot 2017-08-07 at 12 18 15 pm" src="figs/sgg_vis2.jpg"> Top/Bottom: Biased/Debiased Predicate Confidences |
+|<img width="1604" alt="Left/Right: Biased/Debiased Scene Graphs." src="figs/sgg_vis.jpg"> Left/Right: Biased/Debiased Scene Graphs |  <img width="1604" alt="Top/Bottom: Biased/Debiased Predicate Confidence Distribution" src="figs/sgg_vis2.jpg"> Top/Bottom: Biased/Debiased Predicate Confidence Distribution |
 
 ## Models
 The source code will be available at this repository soon. Stay tuned (by clicking "watch" this repo) :)
