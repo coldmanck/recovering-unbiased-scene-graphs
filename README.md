@@ -1,5 +1,9 @@
-# Recovering the Unbiased Scene Graphs from the Biased Ones
+# Recovering the Unbiased Scene Graphs from the Biased Ones (ACMMM 2021)
 <!-- Official implementation of "Recovering the Unbiased Scene Graphs from the Biased Ones" (ACMMM 2021) -->
+
+<div align="center">
+    "A Simple yet Elegant Way to Remove Reporting Bias in Your Scene Graphs"
+</div>
 
 <div align="center">
     <img src="figs/motivation.jpg" width="500">    
