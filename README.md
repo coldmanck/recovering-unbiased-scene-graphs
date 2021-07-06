@@ -4,7 +4,7 @@
 <div align="center">
     
 **Recovering the Unbiased Scene Graphs from the Biased Ones**<br>
-[[Paper]]() [Poster] [Video]<br><br>
+[[Paper]](https://arxiv.org/pdf/2107.02112.pdf) [Poster] [Video]<br><br>
 [Meng-Jiun Chiou](http://coldmanck.github.io/)<sup>1</sup>, [Henghui Ding](https://henghuiding.github.io/)<sup>2</sup>, [Hanshu Yan](https://sites.google.com/view/hanshuyan/home)<sup>1</sup>, Changhu Wang<sup>2</sup>, [Roger Zimmermann](https://www.comp.nus.edu.sg/~rogerz/roger.html)<sup>1</sup> and [Jiashi Feng](https://sites.google.com/site/jshfeng/home)<sup>1</sup><br>
 <sup>1</sup>National University of Singapore <sup>2</sup>ByteDance AI Lab
 </div>
@@ -44,7 +44,16 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
 The source code will be available at this repository soon. Stay tuned (by clicking "watch" this repo) :)
 
 ## Citation
-Coming soon.
+```
+@misc{chiou2021recovering,
+      title={Recovering the Unbiased Scene Graphs from the Biased Ones}, 
+      author={Meng-Jiun Chiou and Henghui Ding and Hanshu Yan and Changhu Wang and Roger Zimmermann and Jiashi Feng},
+      year={2021},
+      eprint={2107.02112},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
+```
 
 ## Credits
 Our codebase is based on [Scene-Graph-Benchmark.pytorch](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch).
