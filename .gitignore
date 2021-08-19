@@ -20,7 +20,7 @@ cocoapi/
 checkpoint/
 
 # dataset
-datasets/vg/
+# datasets/vg/
 *.png
 *.jpg
 *.jpeg
