@@ -23,7 +23,7 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
     <img src="figs/DLFE.jpg" width="800">
 </div>
 
-## Visualizing Unbiased Scene Graphs
+## Visualizing Debiased Scene Graphs
 (Click to see enlarged images!)
 <!-- <div align="center">
     <img src="figs/sgg_vis.jpg" width="270">
@@ -40,8 +40,124 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
 |:-------------------------:|:-------------------------:|
 |<img width="1604" alt="Left/Right: Biased/Debiased Scene Graphs." src="figs/sgg_vis.jpg"> Left/Right: Biased/Debiased Scene Graphs |  <img width="1604" alt="Top/Bottom: Biased/Debiased Predicate Confidence Distribution" src="figs/sgg_vis2.jpg"> Top/Bottom: Biased/Debiased Predicate Confidence Distribution |
 
+## Installation
+Prerequisite for Training: 
+- 2x NVIDIA GPUs (with at least 11G GPU)
+- PyTorch 1.8.0 (should be compatible with versions 0.4.0 ~ 1.9.0)
+- CUDA/cudnn installed (with version matched your PyTorch)
+
+We provide two ways to install:
+- (Recommended) Run `bash install_sgg_env.sh`. That's it!
+- Follow [INSTALL.md](INSTALL.md) to install the requirements step-by-step.
+
+## Data
+Please refer to [DATASET.md](DATASET.md) for downloading the Visual Genome dataset.
+
 ## Models
-The source code will be available at this repository soon. Stay tuned (by clicking "watch" this repo) :)
+Note that before running any of the following command, ensure you have the following options fixed:
+- `--master_port`: you have to choose a different port for each (training/testing) command. For example, if you have one command running with `--master_port 10025`, pass a different port like `--master_port 10026` when you start another command.
+- `CUDA_VISIBLE_DEVICES`: choose the GPUs that you are going to use. For example, `CUDA_VISIBLE_DEVICES=0,1` use the first two GPUs.
+- `--nproc_per_node`: this should correspond to the number of GPUs you used for each command. For example, if you pass `CUDA_VISIBLE_DEVICES=0,1`, you should also pass `--nproc_per_node 2`. 
+- `TEST.IMS_PER_BATCH`: For experiments in PredCls mode, the default value is `48`; however, for experiments in SGCls & SGDet modes (excl. PredCls mode), following the existing codebase we only evaluate **one** image on each GPU. That is, for training/validation experiments in SGCls/SGDet mode, if you pass `CUDA_VISIBLE_DEVICES=0,1` and `--nproc_per_node 2`, you should pass `TEST.IMS_PER_BATCH 2`.
+- `MODEL.ROI_RELATION_HEAD.USE_GT_BOX` and `MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL`: For all commands listed below, the **PredCls** mode is used by default and thus both these two options are set as `True`. To change to **SGCls**, pass `MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL False` while keep `MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True`. To change to **SGDet**, set the both options to `False`. If you don't understand the differences between these three modes, refer to the paper for details.
+- `MODEL.ROI_RELATION_HEAD.PREDICTOR`: For all commands listed below, the MOTIFS SGG backbone (`MotifPredictor`) is used by default. Change to `VCTreePredictor` to use the VCTree backbone.
+
+### Baseline (Backbone Only)
+- Training
+```
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=2 tools/relation_train_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor SOLVER.IMS_PER_BATCH 48 TEST.IMS_PER_BATCH 2 DTYPE "float16" SOLVER.MAX_ITER 50000 SOLVER.VAL_PERIOD 2000 SOLVER.CHECKPOINT_PERIOD 2000 GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp SOLVER.PRE_VAL True
+```
+
+- Validation
+```
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=1 tools/relation_test_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor TEST.IMS_PER_BATCH 48 DTYPE "float16" GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp
+```
+
+### DLFE (Dynamic Label Frequency Estimation)
+Note that `balanced_norm` here means the proposed DLFE in our paper.
+
+- Training
+```
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=2 tools/relation_train_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor SOLVER.IMS_PER_BATCH 48 TEST.IMS_PER_BATCH 2 DTYPE "float16" SOLVER.MAX_ITER 50000 SOLVER.VAL_PERIOD 2000 SOLVER.CHECKPOINT_PERIOD 2000 GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-balanced_norm LOG_TB True SOLVER.PRE_VAL True MODEL.BALANCED_NORM True
+```
+
+- Validation
+```
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=1 tools/relation_test_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor TEST.IMS_PER_BATCH 48 DTYPE "float16" GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-balanced_norm MODEL.BALANCED_NORM True
+```
+
+### Other (Re-)implemented Models 
+Apart from baseline and DLFE, we also provide my implementation for training and testing the following SGG debiasing models based on either MOTIFS or VCTree backbone (click to unfold):
+
+<details>
+<summary>
+Reweighting
+</summary>
+
+- Training
+```
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=2 tools/relation_train_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor SOLVER.IMS_PER_BATCH 48 TEST.IMS_PER_BATCH 2 DTYPE "float16" SOLVER.MAX_ITER 50000 SOLVER.VAL_PERIOD 2000 SOLVER.CHECKPOINT_PERIOD 2000 GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-reweight_sqrt LOG_TB True SOLVER.PRE_VAL True TRAIN.UNBIASED_TRAINING reweight TRAIN.PREDICATE_WEIGHTS_PATH datasets/vg/predicate_weights_sqrt.pkl
+```
+
+- Validation
+```
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=1 tools/relation_test_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor TEST.IMS_PER_BATCH 48 DTYPE "float16" GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-reweight_sqrt
+```
+
+</details>
+
+<details>
+<summary>
+TDE (Total Direct Effect)
+</summary>
+Note that `MODEL.ROI_RELATION_HEAD.PREDICTOR CausalAnalysisPredictor` is fixed for TDE. To change backbone models to VCTRee, pass `MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER vctree`.
+
+- Training
+```
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=2 tools/relation_train_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR CausalAnalysisPredictor MODEL.ROI_RELATION_HEAD.CAUSAL.EFFECT_TYPE none MODEL.ROI_RELATION_HEAD.CAUSAL.FUSION_TYPE sum MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER motifs SOLVER.IMS_PER_BATCH 12 TEST.IMS_PER_BATCH 2 DTYPE "float16" SOLVER.MAX_ITER 50000 SOLVER.VAL_PERIOD 2000 SOLVER.CHECKPOINT_PERIOD 2000 GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motifs-precls-exmp-causal LOG_TB True
+```
+
+- Validation
+```
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=1 tools/relation_test_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR CausalAnalysisPredictor MODEL.ROI_RELATION_HEAD.CAUSAL.EFFECT_TYPE TDE MODEL.ROI_RELATION_HEAD.CAUSAL.FUSION_TYPE sum MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER motifs TEST.IMS_PER_BATCH 1 DTYPE "float16" GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motifs-precls-exmp-causal
+```
+
+</details>
+
+<details>
+<summary>
+PCPL (Predicate-Correlation Perception Learning)
+</summary>
+
+- Training
+```
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=2 tools/relation_train_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor SOLVER.IMS_PER_BATCH 48 TEST.IMS_PER_BATCH 2 DTYPE "float16" SOLVER.MAX_ITER 50000 SOLVER.VAL_PERIOD 2000 SOLVER.CHECKPOINT_PERIOD 2000 GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-pcpl LOG_TB True SOLVER.PRE_VAL True MODEL.PCPL_CENTER_LOSS True
+```
+
+- Validation
+```
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=1 tools/relation_test_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor TEST.IMS_PER_BATCH 1 DTYPE "float16" GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-pcpl
+```
+
+</details>
+
+<details>
+<summary>
+STL (Soft Transfer Learning)
+</summary>
+Note that the learning rate for STL model is 10x smaller than the others. The file `train_labeling_prob_raw.pt` should be generated after training.
+
+- Training
+```
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=2 tools/relation_train_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor SOLVER.IMS_PER_BATCH 12 TEST.IMS_PER_BATCH 2 DTYPE "float16" SOLVER.MAX_ITER 50000 SOLVER.VAL_PERIOD 2000 SOLVER.CHECKPOINT_PERIOD 2000 GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-stl-correct-10xslr LOG_TB True SOLVER.PRE_VAL True MODEL.STL_TRAIN True MODEL.STL_TRAIN_LABEL_PATH output/motif-precls-exmp/inference/VG_stanford_filtered_with_attribute_test/train_eval_results.pytorch SOLVER.BASE_LR 0.001
+```
+
+- Validation
+```
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10032 --nproc_per_node=1 tools/relation_test_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor TEST.IMS_PER_BATCH 48 DTYPE "float16" GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-stl-correct-10xslr TEST.STL_MODE True TEST.STL_TRAINING_SET_LABELING_PROB output/motif-precls-exmp/inference/VG_stanford_filtered_with_attribute_test/train_labeling_prob_raw.pt
+```
+
+</details>
 
 ## Citation
 ```
@@ -57,3 +173,6 @@ The source code will be available at this repository soon. Stay tuned (by clicki
 
 ## Credits
 Our codebase is based on [Scene-Graph-Benchmark.pytorch](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch).
+
+## Enquiry
+Feel free to open an issure or drop an email to mengjiun.chiou at u.nus.edu

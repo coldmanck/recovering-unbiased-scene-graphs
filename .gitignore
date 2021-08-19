@@ -1,1 +1,47 @@
+occupy_gpu_util.py
+
+# compilation and distribution
+__pycache__
+_ext
+*.pyc
+*.so
+maskrcnn_benchmark.egg-info/
+build/
+dist/
+
+apex/
+cocoapi/
+
+# ipython/jupyter notebooks
+#*.ipynb
+**/.ipynb_checkpoints/
+
+# checkpoint
+checkpoint/
+
+# dataset
+datasets/vg/
+*.png
+*.jpg
+*.jpeg
+
+# Editor temporaries
+*.swn
+*.swo
+*.swp
+*~
+
+# Pycharm editor settings
+.idea
+
+# vscode editor settings
+.vscode
+
+# MacOS
 .DS_Store
+
+# Added by MJ
+output/
+# runs/
+checkpoints/
+glove/
