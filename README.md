@@ -5,7 +5,7 @@
     
 **Recovering the Unbiased Scene Graphs from the Biased Ones**<br>
 [[Paper]](https://arxiv.org/pdf/2107.02112.pdf) [[Slides]](files/slides.pdf) [Poster] [Video]<br><br>
-[Meng-Jiun Chiou](http://coldmanck.github.io/)<sup>1</sup>, [Henghui Ding](https://henghuiding.github.io/)<sup>2</sup>, [Hanshu Yan](https://sites.google.com/view/hanshuyan/home)<sup>1</sup>, Changhu Wang<sup>2</sup>, [Roger Zimmermann](https://www.comp.nus.edu.sg/~rogerz/roger.html)<sup>1</sup> and [Jiashi Feng](https://sites.google.com/site/jshfeng/home)<sup>1</sup><br>
+[Meng-Jiun Chiou](http://coldmanck.github.io/)<sup>1</sup>, [Henghui Ding](https://henghuiding.github.io/)<sup>2</sup>, [Hanshu Yan](https://sites.google.com/view/hanshuyan/home)<sup>1</sup>, [Changhu Wang](https://cn.linkedin.com/in/changhu-wang-66342115)<sup>2</sup>, [Roger Zimmermann](https://www.comp.nus.edu.sg/~rogerz/roger.html)<sup>1</sup> and [Jiashi Feng](https://sites.google.com/site/jshfeng/home)<sup>1</sup><br>
 <sup>1</sup>National University of Singapore <sup>2</sup>ByteDance AI Lab
 </div>
 
@@ -25,26 +25,17 @@ Given input images, scene graph generation (SGG) aims to produce comprehensive, 
 
 ## Visualizing Debiased Scene Graphs
 (Click to see enlarged images!)
-<!-- <div align="center">
-    <img src="figs/sgg_vis.jpg" width="270">
-    <img src="figs/sgg_vis2.jpg" width="450">
-</div>
-<div align="left">
-    &nbsp;&nbsp;
-    Left/Right: Biased/Debiased Scene Graphs.
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    Top/Bottom: Biased/Debiased Predicate Confidence.
-</div> -->
 
 | | |
 |:-------------------------:|:-------------------------:|
 |<img width="1604" alt="Left/Right: Biased/Debiased Scene Graphs." src="figs/sgg_vis.jpg"> Left/Right: Biased/Debiased Scene Graphs |  <img width="1604" alt="Top/Bottom: Biased/Debiased Predicate Confidence Distribution" src="figs/sgg_vis2.jpg"> Top/Bottom: Biased/Debiased Predicate Confidence Distribution |
 
 ## Installation
-Prerequisite for Training: 
-- 2x NVIDIA GPUs (with at least 11G GPU)
-- PyTorch 1.8.0 (should be compatible with versions 0.4.0 ~ 1.9.0)
+Prerequisites for starting a training/validation session:
+- 2x NVIDIA GPUs with at least 16G memory each (for training); or 1x NVIDIA GPU with at least 4G memory (for validation)
 - CUDA/cudnn installed (with version matched your PyTorch)
+
+Note that we use PyTorch 1.8.0 (should be compatible with versions 0.4.0 ~ 1.9.0) with CUDA 11.1
 
 We provide two ways to install:
 - (Recommended) Run `bash install_sgg_env.sh`. That's it!
@@ -60,7 +51,10 @@ Note that before running any of the following command, ensure you have the follo
 - `--nproc_per_node`: this should correspond to the number of GPUs you used for each command. For example, if you pass `CUDA_VISIBLE_DEVICES=0,1`, you should also pass `--nproc_per_node 2`. 
 - `TEST.IMS_PER_BATCH`: For experiments in PredCls mode, the default value is `48`; however, for experiments in SGCls & SGDet modes (excl. PredCls mode), following the existing codebase we only evaluate **one** image on each GPU. That is, for training/validation experiments in SGCls/SGDet mode, if you pass `CUDA_VISIBLE_DEVICES=0,1` and `--nproc_per_node 2`, you should pass `TEST.IMS_PER_BATCH 2`.
 - `MODEL.ROI_RELATION_HEAD.USE_GT_BOX` and `MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL`: For all commands listed below, the **PredCls** mode is used by default and thus both these two options are set as `True`. To change to **SGCls**, pass `MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL False` while keep `MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True`. To change to **SGDet**, set the both options to `False`. If you don't understand the differences between these three modes, refer to the paper for details.
+- `OUTPUT_DIR`: this option is not meant for the output directory but also define the name of the experiment. Remember to modify accordingly. For example, `output/motif-precls-exmp-pcpl` means the *PCPL* model with *MOTIFS* backbone trained in *PredCls* mode.
 - `MODEL.ROI_RELATION_HEAD.PREDICTOR`: For all commands listed below, the MOTIFS SGG backbone (`MotifPredictor`) is used by default. Change to `VCTreePredictor` to use the VCTree backbone.
+
+For the MOTIFS baseline and MOTIFS-DLFE, we provide the trained models (checkpoint) for verification purpose. Please download from [here](https://drive.google.com/file/d/1aR612qOpQc1SfMmX1SSVLWGzggfP69xE/view?usp=sharing)* and zip to `output/` under the root folder of this codebase, and then run the following validation commands directly. *Use [gdown](https://github.com/wkentaro/gdown) if needed :)
 
 ### Baseline (Backbone Only)
 - Training
@@ -91,7 +85,7 @@ Apart from baseline and DLFE, we also provide my implementation for training and
 
 <details>
 <summary>
-Reweighting
+Reweighting (with weights of inversed sqrt predicate frequency)
 </summary>
 
 - Training
@@ -175,4 +169,4 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10032 --
 Our codebase is based on [Scene-Graph-Benchmark.pytorch](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch).
 
 ## Enquiry
-Feel free to open an issure or drop an email to mengjiun.chiou at u.nus.edu
+Please check if your issue has been addressed in discussions of the Issue sesction of this repositoy. Otherwise, feel free to open an issure or drop an email to mengjiun.chiou at u.nus.edu
