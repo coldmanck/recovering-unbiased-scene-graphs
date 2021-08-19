@@ -87,7 +87,7 @@ class BalancedNorm1d(nn.Module):
         if input.dim() != 2 and input.dim() != 3:
             raise ValueError('expected 2D or 3D input (got {}D input)'.format(input.dim()))
 
-    def forward(self, relation_logits, rel_labels, multi_label_training):
+    def forward(self, relation_logits, rel_labels):
         '''
         Takes in the same parameters as those of common loss functions.
         Parameters:
@@ -111,17 +111,13 @@ class BalancedNorm1d(nn.Module):
                     exponential_average_factor = self.momentum
 
         if self.training:
-            if multi_label_training:
-                relation_probs = torch.sigmoid(relation_logits)
-                labeling_prob = torch.sum(relation_probs * rel_labels, dim=0) / torch.sum(rel_labels, dim=0)
-                non_nan_idxs = ~torch.isnan(labeling_prob)
-            else:
-                fg_idxs = (rel_labels != 0)
-                fg_relation_probs = F.softmax(relation_logits[fg_idxs], dim=-1)
-                rel_labels_one_hot = torch.zeros_like(fg_relation_probs, dtype=torch.int)
-                rel_labels_one_hot[list(range(len(fg_relation_probs))), rel_labels[fg_idxs]] = 1
-                labeling_prob = torch.sum(fg_relation_probs * rel_labels_one_hot, dim=0) / torch.sum(rel_labels_one_hot, dim=0)
-                non_nan_idxs = ~torch.isnan(labeling_prob)
+            # import pdb; pdb.set_trace()
+            fg_idxs = (rel_labels != 0)
+            fg_relation_probs = F.softmax(relation_logits[fg_idxs], dim=-1)
+            rel_labels_one_hot = torch.zeros_like(fg_relation_probs, dtype=torch.int)
+            rel_labels_one_hot[list(range(len(fg_relation_probs))), rel_labels[fg_idxs]] = 1
+            labeling_prob = torch.sum(fg_relation_probs * rel_labels_one_hot, dim=0) / torch.sum(rel_labels_one_hot, dim=0)
+            non_nan_idxs = ~torch.isnan(labeling_prob)
 
             if self.with_gradient:
                 self.running_labeling_prob[non_nan_idxs] = exponential_average_factor * labeling_prob[non_nan_idxs] + (1 - exponential_average_factor) * self.running_labeling_prob[non_nan_idxs]
@@ -132,13 +128,11 @@ class BalancedNorm1d(nn.Module):
         #     labeling_prob = self.running_labeling_prob
         assert self.running_labeling_prob[0] == 1
 
-        relation_probs_norm = torch.sigmoid(relation_logits) if multi_label_training else F.softmax(relation_logits, dim=-1) 
-        if not self.training: # ONLY recover unbiased probabilities during testing
-            # import pdb; pdb.set_trace()
-            relation_probs_norm /= (self.running_labeling_prob + self.eps)
-            if self.normalized_probs:
-                # relation_probs_norm /= (torch.sum(relation_probs_norm, dim=-1).view(-1, 1) + self.eps)
-                # relation_probs_norm = F.softmax(relation_probs_norm, dim=-1)
-                relation_probs_norm[:, 0] = 1 - relation_probs_norm[:, 1:].sum(1)
+        relation_probs_norm = F.softmax(relation_logits, dim=-1) / (self.running_labeling_prob + self.eps)
+        # import pdb; pdb.set_trace()
+        if self.normalized_probs:
+            # relation_probs_norm /= (torch.sum(relation_probs_norm, dim=-1).view(-1, 1) + self.eps)
+            # relation_probs_norm = F.softmax(relation_probs_norm, dim=-1)
+            relation_probs_norm[:, 0] = 1 - relation_probs_norm[:, 1:].sum(1)
 
-        return relation_probs_norm, self.running_labeling_prob.detach(), None # if not self.training else torch.sum(rel_labels_one_hot, dim=0)
+        return relation_probs_norm, self.running_labeling_prob.detach(), None if not self.training else torch.sum(rel_labels_one_hot, dim=0)

@@ -103,31 +103,24 @@ def inference(
 
     causal_effect_type = cfg.MODEL.ROI_RELATION_HEAD.CAUSAL.EFFECT_TYPE
     if mode != '': # for computing labeling prob use
-        cache_name = f"{mode}_eval_results" 
-    elif cfg.TEST.H_DATA_AUG:
-        cache_name = 'eval_results_h_data_aug_test'
+        cache_name = f"{mode}_eval_results.pytorch" 
     elif cfg.HMC.C_HMC_TEST:
-        cache_name = 'eval_results_c_hmc_test'
+        cache_name = 'eval_results_c_hmc_test.pytorch'
     elif cfg.TEST.WITH_LABEL_PROB_ONLY:
-        cache_name = 'eval_results-test_with_label_prob_only'
+        cache_name = 'eval_results-test_with_label_prob_only.pytorch'
     elif cfg.TEST.STL_MODE_PREDCLS_LP:
-        cache_name = 'stl-predcls-lp_eval_results'
+        cache_name = 'stl-predcls-lp_eval_results.pytorch'
     elif cfg.TEST.STL_MODE:
-        cache_name = 'stl_eval_results'
+        cache_name = 'stl_eval_results.pytorch'
     # elif cfg.TEST.WITH_COGTREE:
     #     if cfg.TEST.HANDPICKED_COGTREE:
-    #         cache_name = 'handpicked_cogtree_eval_results'
+    #         cache_name = 'handpicked_cogtree_eval_results.pytorch'
     #     else:
-    #         cache_name = 'generated_cogtree_eval_results'
+    #         cache_name = 'generated_cogtree_eval_results.pytorch'
     elif causal_effect_type != 'none':
-        cache_name = f'{causal_effect_type}_eval_results'
+        cache_name = f'{causal_effect_type}_eval_results.pytorch'
     else:
-        cache_name = 'eval_results'
-
-    if cfg.DEBUG:
-        cache_name = cache_name + '_DEBUG'
-
-    cache_name = cache_name + '.pytorch'
+        cache_name = 'eval_results.pytorch'
 
     load_prediction_from_cache = cfg.TEST.ALLOW_LOAD_FROM_CACHE and output_folder is not None and os.path.exists(os.path.join(output_folder, cache_name))
     # convert to a torch.device for efficiency

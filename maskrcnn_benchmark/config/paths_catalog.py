@@ -117,24 +117,6 @@ class DatasetCatalog(object):
             "dict_file": "vg/VG-SGG-dicts-with-attri.json",
             "image_file": "vg/image_data.json",
         },
-        "H_VG_stanford_filtered_with_attribute": {
-            "img_dir": "vg/VG_100K",
-            "roidb_file": "vg/H-VG-SGG-with-attri.h5",
-            "dict_file": "vg/H-VG-SGG-dicts-with-attri.json",
-            "image_file": "vg/image_data.json",
-        },
-        "HU_VG_stanford_filtered_with_attribute": {
-            "img_dir": "vg/VG_100K",
-            "roidb_file": "vg/HU-VG-SGG-with-attri.h5",
-            "dict_file": "vg/HU-VG-SGG-dicts-with-attri.json",
-            "image_file": "vg/image_data.json",
-        },
-        "H_VG_C_stanford_filtered_with_attribute": {
-            "img_dir": "vg/VG_100K",
-            "roidb_file": "vg/H-VG-C-SGG-with-attri.h5",
-            "dict_file": "vg/H-VG-C-SGG-dicts-with-attri.json",
-            "image_file": "vg/image_data.json",
-        },
     }
 
     @staticmethod
@@ -193,13 +175,6 @@ class DatasetCatalog(object):
             # multi-label training
             args['multi_label_training'] = cfg.TRAIN.MULTI_LABEL_TRAINING
             # args['c_hmc'] = cfg.TRAIN.C_HMC or cfg.TEST.C_HMC
-            args['h_data_aug_train'] = cfg.TRAIN.H_DATA_AUG
-            args['h_data_aug_test'] = cfg.TEST.H_DATA_AUG
-            args['ancestor_mat_path'] = cfg.HMC.ANCESTOR_MAT_PATH
-
-            # Hierarchical SGG
-            args['h_sgg_obj'] = cfg.MODEL.HSGG.OBJ_HIER
-            args['h_sgg_rel'] = cfg.MODEL.HSGG.REL_HIER
             
             if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_BOX:
                 if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL:

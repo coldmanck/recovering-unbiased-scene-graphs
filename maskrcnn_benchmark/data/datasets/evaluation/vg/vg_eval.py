@@ -12,7 +12,7 @@ from maskrcnn_benchmark.data import get_dataset_statistics
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.utils.miscellaneous import intersect_2d, argsort_desc, bbox_overlaps
-from maskrcnn_benchmark.data.datasets.evaluation.vg.sgg_eval import SGRecall, SGNoGraphConstraintRecall, SGZeroShotRecall, SGNGZeroShotRecall, SGPairAccuracy, SGMeanRecall, SGNGMeanRecall, SGAccumulateRecall, SGInstanceRecall, SGMeanInstanceRecall, SGHierRecall
+from maskrcnn_benchmark.data.datasets.evaluation.vg.sgg_eval import SGRecall, SGNoGraphConstraintRecall, SGZeroShotRecall, SGNGZeroShotRecall, SGPairAccuracy, SGMeanRecall, SGNGMeanRecall, SGAccumulateRecall
 
 import json
 import pickle
@@ -41,7 +41,7 @@ def do_vg_evaluation(
         assert cfg.TEST.COGTREE_PATH != ''
         with open(cfg.TEST.COGTREE_PATH, 'rb') as f:
             cogtree_file = pickle.load(f)
-
+    
     # get zeroshot triplet
     zeroshot_triplet = torch.load("maskrcnn_benchmark/data/datasets/evaluation/vg/zeroshot_triplet.pytorch", map_location=torch.device("cpu")).long().numpy()
 
@@ -57,27 +57,6 @@ def do_vg_evaluation(
     else:
         mode = 'sgdet'
 
-    matrix_of_ancestor_rel = matrix_of_ancestor_obj = rel_hierarchy_paths = obj_hierarchy_paths = None
-    comp_hier_recall = False
-    if cfg.MODEL.HSGG.REL_HIER or cfg.TEST.COMP_REL_HIER_RECALL:
-        comp_hier_recall = True
-        with open(cfg.MODEL.HSGG.REL_HIER_PATH, 'rb') as f:
-            matrix_of_ancestor_rel = pickle.load(f)
-        matrix_of_ancestor_rel = torch.tensor(matrix_of_ancestor_rel).to(torch.device('cuda'))
-
-        with open(cfg.MODEL.HSGG.REL_HIER_PATHS_PATH, 'rb') as f:
-            rel_hierarchy_paths = pickle.load(f)
-    comp_obj_hier_recall = False 
-    if cfg.MODEL.HSGG.OBJ_HIER or cfg.TEST.COMP_OBJ_HIER_RECALL:
-        assert mode != 'predcls' # only applies to non-PredCls SGG mode!
-        comp_obj_hier_recall = True 
-        with open(cfg.MODEL.HSGG.OBJ_HIER_PATH, 'rb') as f:
-            matrix_of_ancestor_obj = pickle.load(f)
-        matrix_of_ancestor_obj = torch.tensor(matrix_of_ancestor_obj).to(torch.device('cuda'))
-
-        with open(cfg.MODEL.HSGG.OBJ_HIER_PATHS_PATH, 'rb') as f:
-            obj_hierarchy_paths = pickle.load(f)
-    
     num_rel_category = cfg.MODEL.ROI_RELATION_HEAD.NUM_CLASSES
     multiple_preds = cfg.TEST.RELATION.MULTIPLE_PREDS
     iou_thres = cfg.TEST.RELATION.IOU_THRESHOLD
@@ -197,25 +176,6 @@ def do_vg_evaluation(
         eval_recall.register_container(mode)
         evaluator['eval_recall'] = eval_recall
 
-        # instance Recall
-        if cfg.TEST.INSTANCE_RECALLS:
-            assert mode == 'predcls' # Only implemented for PredCls mode!
-            eval_i_recall = SGInstanceRecall(result_dict, test_with_cogtree=test_with_cogtree)
-            eval_i_recall.register_container(mode)
-            evaluator['eval_i_recall'] = eval_i_recall
-
-            eval_mean_i_recall = SGMeanInstanceRecall(result_dict, num_rel_category, dataset.ind_to_predicates, print_detail=True)
-            eval_mean_i_recall.register_container(mode)
-            evaluator['eval_mean_i_recall'] = eval_mean_i_recall
-
-        # Hierarchical Recall
-        if comp_hier_recall: # cfg.MODEL.HSGG.REL_HIER and cfg.DEBUG: # remember to remove cfg.DEBUG!
-            # if True: need obj_hier and only apply to SGCls/SGDet 
-
-            eval_hier_recall = SGHierRecall(result_dict, comp_obj_hier_recall, matrix_of_ancestor_rel, rel_hierarchy_paths, matrix_of_ancestor_obj, obj_hierarchy_paths)
-            eval_hier_recall.register_container(mode)
-            evaluator['eval_hier_recall'] = eval_hier_recall
-        
         # no graphical constraint
         eval_nog_recall = SGNoGraphConstraintRecall(result_dict, test_with_cogtree=test_with_cogtree)
         eval_nog_recall.register_container(mode)
@@ -269,7 +229,7 @@ def do_vg_evaluation(
             gt_rel_to_pred_rel_path = os.path.join(output_folder, 'gt_rel_to_pred_rel.pkl')
         example_count = [0] * 51
         for groundtruth, prediction in tqdm(zip(groundtruths, predictions), total=len(groundtruths)):
-            pred_scores, pred_labels, gt_pred_idxs, pred_predicates = evaluate_relation_of_one_image(groundtruth, prediction, global_container, evaluator, cfg.TEST.INSTANCE_RECALLS, comp_hier_recall)
+            pred_scores, pred_labels, gt_pred_idxs, pred_predicates = evaluate_relation_of_one_image(groundtruth, prediction, global_container, evaluator)
             if comp_cogtree and pred_predicates is not None:
                 for gt_rel, pred_rel in pred_predicates:
                     gt_rel_to_pred_rel[gt_rel][pred_rel] += 1
@@ -325,16 +285,9 @@ def do_vg_evaluation(
         result_str += eval_ng_zeroshot_recall.generate_print_string(mode)
         result_str += eval_mean_recall.generate_print_string(mode)
         result_str += eval_ng_mean_recall.generate_print_string(mode)
-        if comp_hier_recall: # Hierarchical Recall
-            result_str += eval_hier_recall.generate_print_string(mode)
         
         if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_BOX:
             result_str += eval_pair_accuracy.generate_print_string(mode)
-            if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL and cfg.TEST.INSTANCE_RECALLS:
-                result_str += eval_i_recall.generate_print_string(mode)
-                
-                eval_mean_i_recall.calculate_mean_recall(mode)
-                result_str += eval_mean_i_recall.generate_print_string(mode)
         result_str += '=' * 100 + '\n'
 
 
@@ -391,7 +344,7 @@ def save_output(output_folder, groundtruths, predictions, dataset, cache_name):
 
 
 
-def evaluate_relation_of_one_image(groundtruth, prediction, global_container, evaluator, comp_inst_recalls, comp_hier_recall):
+def evaluate_relation_of_one_image(groundtruth, prediction, global_container, evaluator):
     """
     Returns:
         pred_to_gt: Matching from predicate to GT
@@ -419,7 +372,7 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
     local_container['pred_boxes'] = prediction.convert('xyxy').bbox.detach().cpu().numpy()                  # (#pred_objs, 4)
     local_container['pred_classes'] = prediction.get_field('pred_labels').long().detach().cpu().numpy()     # (#pred_objs, )
     local_container['obj_scores'] = prediction.get_field('pred_scores').detach().cpu().numpy()              # (#pred_objs, )
-    local_container['pred_class_prob'] = prediction.get_field('pred_class_prob').detach().cpu().numpy()              # 
+    
 
     # to calculate accuracy, only consider those gt pairs
     # This metric is used by "Graphical Contrastive Losses for Scene Graph Parsing" 
@@ -474,13 +427,7 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
     # NOTE: this is the MAIN evaluation function, it must be run first (several important variables need to be update)
     pred_scores = pred_labels = None
     local_container, pred_scores, pred_labels, gt_pred_idxs, pred_predicates = evaluator['eval_recall'].calculate_recall(global_container, local_container, mode)
-    # Instance Recall
-    if comp_inst_recalls:
-        evaluator['eval_i_recall'].calculate_recall(global_container, local_container, mode)
-        evaluator['eval_mean_i_recall'].collect_mean_recall_items(global_container, local_container, mode)
-    # No Graph Constraint
-    if comp_hier_recall:
-        evaluator['eval_hier_recall'].calculate_recall(global_container, local_container, mode)
+
     # No Graph Constraint
     evaluator['eval_nog_recall'].calculate_recall(global_container, local_container, mode)
     # GT Pair Accuracy

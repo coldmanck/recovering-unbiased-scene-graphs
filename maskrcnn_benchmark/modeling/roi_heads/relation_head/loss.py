@@ -42,23 +42,6 @@ def softXEnt(input, target):
     logprobs = F.log_softmax(input, dim = 1)
     return -(target * logprobs).sum() / input.shape[0]
 
-def order_distance(x, y):
-    '''
-    Input: x, y are both the embeddings its respective concept a, b.
-    Output:
-    If a (concept of x) is a generalized version of b (concept of y), 
-    this function should outputs zero (since x < y in all dimensions).
-    '''
-    return torch.norm(torch.maximum(torch.zeros(x.shape).cuda(), x - y), p=2, dim=1) # F.normalize(max(0, x - y))
-
-# def triplet_softmax_loss(input, target):
-#     # prd_sem_embeddings = self.prd_sem_embeddings(ds_prd_vecs)
-#     input = F.normalize(input, p=2, dim=1)  # (#prd, 1024)
-#     target = F.normalize(target, p=2, dim=1)  # (#bs, 1024)
-#     prd_sim_matrix = torch.mm(prd_vis_embeddings, prd_sem_embeddings.t_())  # (#bs, #prd)
-#     prd_cls_scores = cfg.MODEL.NORM_SCALE * prd_sim_matrix
-#     return -F.log_softmax(prd_cls_scores, dim=1)
-
 class RelationLossComputation(object):
     """
     Computes the loss for relation triplet.
@@ -107,9 +90,6 @@ class RelationLossComputation(object):
         multi_label_training,
         multi_label_norm_loss,
         c_hmc_train,
-        h_sgg_obj,
-        h_sgg_rel,
-        h_sgg_rel_beta,
         debug,
     ):
         """
@@ -131,11 +111,6 @@ class RelationLossComputation(object):
         # BalNorm
         self.use_balanced_norm = False if balanced_norm_test_only else use_balanced_norm
 
-        # Hierarchical SGG
-        self.h_sgg_obj = h_sgg_obj
-        self.h_sgg_rel = h_sgg_rel
-        self.h_sgg_rel_beta = h_sgg_rel_beta
-        
         # PCPL & Center Loss
         self.pcpl_center_loss = pcpl_center_loss
         self.num_classes = num_classes
@@ -287,7 +262,7 @@ class RelationLossComputation(object):
             else:
                 self.loss_relation_balanced_norm = nn.NLLLoss(weight=self.weight)
 
-    def __call__(self, proposals, rel_labels, relation_logits, refine_logits, stl_labels=None, relation_probs_norm=None, relation_logits_raw=None, rel_pair_idxs=None, labeling_prob=None, matrix_of_ancestor_rel=None, matrix_of_ancestor_obj=None, hsgg_rel_embs=None):
+    def __call__(self, proposals, rel_labels, relation_logits, refine_logits, stl_labels=None, relation_probs_norm=None, relation_logits_raw=None, rel_pair_idxs=None, labeling_prob=None, matrix_of_ancestor=None):
         """
         Computes the loss for relation triplet.
         This requires that the subsample method has been called beforehand.
@@ -344,7 +319,7 @@ class RelationLossComputation(object):
         assert not (self.stl_train and self.bg_soft_loss), 'Simultaneous usage of stl_train and bg_soft_loss are not supported!'
         assert not (self.use_balanced_norm and self.bg_soft_loss), 'Simultaneous usage of use_balanced_norm and bg_soft_loss are not supported!'
 
-        loss_center = loss_gx = rel_features = rel_targets = loss_avg_belief = loss_rel_concept = None
+        loss_center = loss_gx = rel_features = rel_targets = loss_avg_belief = None
         if self.pcpl_center_loss:
             assert relation_logits_raw is not None
             # compute center loss
@@ -365,15 +340,6 @@ class RelationLossComputation(object):
             max_corr, min_corr = max(global_corr), min(global_corr)
             corr_factor = (global_corr - min_corr + eps) / (max_corr - min_corr)
             weight = corr_factor.detach()
-
-        '''
-        loss_rel_concept = None
-        if self.h_sgg_rel: # Hierarchical SGG
-            # Train concept embedding for relation predicates
-            import pdb; pdb.set_trace()
-            # loss_rel_concept = 
-            # self.rel_emb
-        '''
 
         if self.stl_train:
             assert stl_labels is not None
@@ -424,7 +390,7 @@ class RelationLossComputation(object):
             # loss_relation = (loss_relation + loss_relation_stl * self.loss_relation_stl_alpha) / len(relation_logits)
             # loss_relation_stl = None # set to None (for now) as it should be combined into loss_relation. Delete this variable if it's correct to do so.
         else:
-            if self.use_balanced_norm and not self.multi_label_training:
+            if self.use_balanced_norm:
                 assert relation_probs_norm is not None
                 if self.balanced_norm_train_gx:
                     loss_gx = F.cross_entropy(relation_logits, rel_labels.long())
@@ -542,70 +508,34 @@ class RelationLossComputation(object):
                 loss_relation = F.cross_entropy(relation_logits, rel_labels.long(), weight=weight)
             elif self.unbiased_training == 'reweight_vrd':
                 raise NotImplementedError
-            elif self.multi_label_training:
-                assert not self.h_sgg_rel # sanity check
-                if self.c_hmc_train:
-                    assert isinstance(self.criterion_loss_relation, nn.BCELoss) # sanity check
-                    relation_logits = torch.sigmoid(relation_logits)
-                    constr_output = get_constr_out(relation_logits, matrix_of_ancestor_rel)
-                    train_output = rel_labels * relation_logits.double()
-                    train_output = get_constr_out(train_output, matrix_of_ancestor_rel)
-                    relation_logits = (1 - rel_labels) * constr_output.double() + rel_labels * train_output
-                
-                else:
-                    assert isinstance(self.criterion_loss_relation, nn.BCEWithLogitsLoss) # sanity check
-                
-                if not self.h_sgg_rel:
+            else:
+                if self.multi_label_training:
+                    if self.c_hmc_train:
+                        # import pdb; pdb.set_trace()
+                        assert isinstance(self.criterion_loss_relation, nn.BCELoss) # sanity check
+                        relation_logits = torch.sigmoid(relation_logits)
+                        constr_output = get_constr_out(relation_logits, matrix_of_ancestor)
+                        train_output = rel_labels * relation_logits.double()
+                        train_output = get_constr_out(train_output, matrix_of_ancestor)
+                        relation_logits = (1 - rel_labels) * constr_output.double() + rel_labels * train_output
+                    else:
+                        assert isinstance(self.criterion_loss_relation, nn.BCEWithLogitsLoss) # sanity check
+                    
                     if self.multi_label_norm_loss:
                         rel_labels = rel_labels / rel_labels.sum(dim=1).view(-1, 1)
                     loss_relation = self.criterion_loss_relation(relation_logits, rel_labels.double()).float()
-                
-                # if self.multi_label_norm_loss:
-                #     if rel_labels.sum() < rel_labels.shape[0]:
-                #         import pdb; pdb.set_trace()
-                #         nonzero_idxs = rel_labels.sum(dim=1).nonzero()
-                #         rel_labels = rel_labels[nonzero_idxs].squeeze()
-                #         loss_relation = loss_relation[nonzero_idxs].squeeze()
-                #     # elif rel_labels.sum() > rel_labels.shape[0]:
-                #     import pdb; pdb.set_trace()
-                #     loss_relation = (loss_relation / rel_labels.sum(dim=1).view(-1, 1)).sum() / loss_relation.shape[0]
-            elif self.h_sgg_rel:
-                rel_emb, rel_emb_func_vis, rel_emb_func_lan = hsgg_rel_embs
-                assert relation_logits_raw is not None
-                
-                # Predicate Concept Loss
-                rel_pos_mu, rel_pos_sigma = matrix_of_ancestor_rel.nonzero()[:, 0], matrix_of_ancestor_rel.nonzero()[:, 1]
-                loss_rel_concept_pos = order_distance(rel_emb.weight[rel_pos_mu], rel_emb.weight[rel_pos_sigma]).sum()
-                
-                rel_neg_mu, rel_neg_sigma = (-matrix_of_ancestor_rel + 1).nonzero()[:, 0], (-matrix_of_ancestor_rel + 1).nonzero()[:, 1]
-                dist_neg = order_distance(rel_emb.weight[rel_neg_mu], rel_emb.weight[rel_neg_sigma])
-                loss_rel_concept_neg = torch.maximum(torch.zeros(dist_neg.shape).cuda(), torch.full(dist_neg.shape, self.h_sgg_rel_beta).cuda() - dist_neg).sum()
-                
-                loss_rel_concept = (loss_rel_concept_pos + loss_rel_concept_neg) / (len(rel_pos_mu) + len(dist_neg))
-
-                # Hierarchical SGG Loss
-                ### For single-label setting ###
-                relation_logits_raw_idxs = rel_labels.nonzero()
-                rel_labels_idxs = rel_labels[relation_logits_raw_idxs]
-
-                ### For multi-label setting ###
-                # relation_logits_raw_idxs, rel_labels_idxs = rel_labels.nonzero()[:, 0], rel_labels.nonzero()[:, 1]
-
-                ancestors_of_labels = matrix_of_ancestor_rel[:, rel_labels_idxs].transpose(0, 1).squeeze() # shape of [291, 56]
-                loss_relations = []
-                for idx in range(ancestors_of_labels.shape[0]):
-                    vis_pos_mu = rel_labels_idxs[idx].view(-1)
-                    vis_neg_mu = (-ancestors_of_labels[idx] + 1).nonzero().flatten()
-                    vis_mu = torch.cat((vis_pos_mu, vis_neg_mu))
-
-                    x = relation_logits_raw[relation_logits_raw_idxs[idx]].repeat(len(vis_mu), 1) # torch.Size([54, 4096])
-
-                    loss_relation_example = -F.log_softmax(-order_distance(rel_emb.weight[vis_mu], rel_emb_func_vis(x)))[0].view(-1)
-                    loss_relations.append(loss_relation_example)
-                # import pdb; pdb.set_trace()
-                loss_relation = torch.cat(loss_relations).sum() / len(loss_relations)
-            else:
-                loss_relation = self.criterion_loss_relation(relation_logits, rel_labels.long())
+                    
+                    # if self.multi_label_norm_loss:
+                    #     if rel_labels.sum() < rel_labels.shape[0]:
+                    #         import pdb; pdb.set_trace()
+                    #         nonzero_idxs = rel_labels.sum(dim=1).nonzero()
+                    #         rel_labels = rel_labels[nonzero_idxs].squeeze()
+                    #         loss_relation = loss_relation[nonzero_idxs].squeeze()
+                    #     # elif rel_labels.sum() > rel_labels.shape[0]:
+                    #     import pdb; pdb.set_trace()
+                    #     loss_relation = (loss_relation / rel_labels.sum(dim=1).view(-1, 1)).sum() / loss_relation.shape[0]
+                else:
+                    loss_relation = self.criterion_loss_relation(relation_logits, rel_labels.long())
             loss_relation_stl = None
         
         # The following code is used to calcaulate sampled attribute loss
@@ -625,9 +555,9 @@ class RelationLossComputation(object):
             loss_refine_att = self.attribute_loss(refine_att_logits, attribute_targets, 
                                              fg_bg_sample=self.attribute_sampling, 
                                              bg_fg_ratio=self.attribute_bgfg_ratio)
-            return loss_relation, (loss_refine_obj, loss_refine_att), loss_relation_stl, loss_center, loss_gx, loss_avg_belief, loss_rel_concept, rel_features, rel_targets
+            return loss_relation, (loss_refine_obj, loss_refine_att), loss_relation_stl, loss_center, loss_gx, loss_avg_belief, rel_features, rel_targets
         else:
-            return loss_relation, loss_refine_obj, loss_relation_stl, loss_center, loss_gx, loss_avg_belief, loss_rel_concept, rel_features, rel_targets
+            return loss_relation, loss_refine_obj, loss_relation_stl, loss_center, loss_gx, loss_avg_belief, rel_features, rel_targets
 
     def generate_attributes_target(self, attributes):
         """
@@ -735,9 +665,6 @@ def make_roi_relation_loss_evaluator(cfg):
         cfg.TRAIN.MULTI_LABEL_TRAINING,
         cfg.TRAIN.MULTI_LABEL_NORM_LOSS,
         cfg.HMC.C_HMC_TRAIN,
-        cfg.MODEL.HSGG.OBJ_HIER,
-        cfg.MODEL.HSGG.REL_HIER,
-        cfg.MODEL.HSGG.REL_HIER_BETA,
         cfg.DEBUG,
     )
 

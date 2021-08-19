@@ -517,22 +517,6 @@ _C.MODEL.FBNET.MASK_HEAD_STRIDE = 0
 _C.MODEL.FBNET.RPN_HEAD_BLOCKS = 0
 _C.MODEL.FBNET.RPN_BN_TYPE = ""
 
-# ---------------------------------------------------------------------------- #
-# Hierarchical SGG options
-# ---------------------------------------------------------------------------- #
-_C.MODEL.HSGG = CN()
-_C.MODEL.HSGG.OBJ_HIER = False # Learn hierarchical object recognition (HOR)
-# Note: train L_{obj_concept} only if OBJ_HIER is True: e_v
-_C.MODEL.HSGG.OBJ_HIER_DIM = 600
-_C.MODEL.HSGG.OBJ_HIER_PATH = ''
-_C.MODEL.HSGG.OBJ_HIER_PATHS_PATH = ''
-_C.MODEL.HSGG.REL_HIER = False # Learn hierarchical predicate recognition (HPR)
-# Note: train L_{rel_concept} only if REL_HIER is True: e_v' and e_l
-_C.MODEL.HSGG.REL_HIER_DIM = 300
-_C.MODEL.HSGG.REL_HIER_PATH = 'datasets/vg/matrix_of_ancestor_hvrd_label_hierarchy.pkl'
-_C.MODEL.HSGG.REL_HIER_PATHS_PATH = 'datasets/vg/paths_hvrd_label_hierarchy.pkl'
-_C.MODEL.HSGG.REL_HIER_BETA = 1
-_C.MODEL.HSGG.TEST_REL_INST_SORT = False # Relationship instance sorting in H-VRD during inference
 
 # ---------------------------------------------------------------------------- #
 # Solver
@@ -612,8 +596,6 @@ _C.TRAIN.NORM_PREDICATE_COUNTS_PATH = 'datasets/vg/normalized_predicate_counts.p
 
 _C.TRAIN.MONITOR_MEAN_RECALL = False
 
-_C.TRAIN.H_DATA_AUG = False # training-time data augmentation using (pre-computed) label hierarchicy 
-
 # ---------------------------------------------------------------------------- #
 # Specific test options
 # ---------------------------------------------------------------------------- #
@@ -679,16 +661,8 @@ _C.TEST.WITH_COGTREE = False
 _C.TEST.HANDPICKED_COGTREE = True # default: use handpick cogtree
 _C.TEST.COGTREE_PATH = ''
 
-# Below are for computing hierarchical recall
-_C.TEST.COMP_OBJ_HIER_RECALL = False
-_C.TEST.COMP_REL_HIER_RECALL = False
-
 # Below are for testing with labelgin probability ONLY
 _C.TEST.WITH_LABEL_PROB_ONLY = False
-
-_C.TEST.H_DATA_AUG = False # whether to evaluate with label hierarchy-augmented ground truth
-
-_C.TEST.INSTANCE_RECALLS = False # whether to evaluate with instance (object pair) wise recalls
 
 # ---------------------------------------------------------------------------- #
 # Hierarchical Multi-label Classification (HMC) options

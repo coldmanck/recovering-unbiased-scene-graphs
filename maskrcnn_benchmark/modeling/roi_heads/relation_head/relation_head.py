@@ -57,17 +57,6 @@ class ROIRelationHead(torch.nn.Module):
         self.stl_train = self.cfg.MODEL.STL_TRAIN
         self.stl_eval = self.cfg.MODEL.STL_EVAL
 
-        # Hierarchical SGG
-        if self.cfg.MODEL.HSGG.OBJ_HIER:
-            raise NotImplementedError
-            self.obj_emb = nn.Embedding(150, self.cfg.MODEL.HSGG.OBJ_HIER_DIM)
-            # self.obj_emb_func = nn.Linear(, self.cfg.MODEL.HSGG.REL_HIER_DIM)
-        self.rel_emb = self.rel_emb_func_vis = self.rel_emb_func_lan = None
-        if self.cfg.MODEL.HSGG.REL_HIER:
-            self.rel_emb = nn.Embedding(51 + 5, self.cfg.MODEL.HSGG.REL_HIER_DIM) # + 5 for generic, generated predicates
-            self.rel_emb_func_vis = nn.Linear(self.cfg.MODEL.ROI_RELATION_HEAD.CONTEXT_POOLING_DIM, self.cfg.MODEL.HSGG.REL_HIER_DIM)
-            self.rel_emb_func_lan = nn.Linear(self.cfg.MODEL.ROI_RELATION_HEAD.CONTEXT_POOLING_DIM, self.cfg.MODEL.HSGG.REL_HIER_DIM)
-        
         # testing with label prob directly
         if self.cfg.TEST.WITH_LABEL_PROB_ONLY:
             assert self.cfg.MODEL.PRECOMPUTED_BALANCED_NORM_PATH != ''
@@ -98,29 +87,17 @@ class ROIRelationHead(torch.nn.Module):
 
         # Multi-label training 
         self.multi_label_training = cfg.TRAIN.MULTI_LABEL_TRAINING or cfg.HMC.C_HMC_TEST
-        self.matrix_of_ancestor_rel = self.matrix_of_ancestor_obj = None
+        self.matrix_of_ancestor = None
         if self.multi_label_training:
-            # Predicate hierarchy
             if cfg.HMC.C_HMC_TRAIN or cfg.HMC.C_HMC_TEST:
                 assert cfg.HMC.ANCESTOR_MAT_PATH != '', 'Error: ancestor matrix\'s path cannot be empty!'
                 with open(cfg.HMC.ANCESTOR_MAT_PATH, 'rb') as f:
-                    self.matrix_of_ancestor_rel = pickle.load(f) # f
+                    self.matrix_of_ancestor = pickle.load(f) # f
 
-                self.matrix_of_ancestor_rel = torch.tensor(self.matrix_of_ancestor_rel)
-                # Transpose to get the ancestors for each node 
-                self.matrix_of_ancestor_rel = self.matrix_of_ancestor_rel.transpose(1, 0)
-                self.matrix_of_ancestor_rel = self.matrix_of_ancestor_rel.unsqueeze(0).to(torch.device('cuda'))
-        elif cfg.MODEL.HSGG.REL_HIER:
-            with open(cfg.MODEL.HSGG.REL_HIER_PATH, 'rb') as f:
-                self.matrix_of_ancestor_rel = pickle.load(f)
-            self.matrix_of_ancestor_rel = torch.tensor(self.matrix_of_ancestor_rel).to(torch.device('cuda'))
-
-            # Object hierarchy
-            if cfg.MODEL.HSGG.OBJ_HIER:
-                with open(cfg.MODEL.HSGG.OBJ_HIER_PATH, 'rb') as f:
-                    self.matrix_of_ancestor_obj = pickle.load(f) # f
-                self.matrix_of_ancestor_obj = torch.tensor(self.matrix_of_ancestor_obj).to(torch.device('cuda'))
-
+                self.matrix_of_ancestor = torch.tensor(self.matrix_of_ancestor)
+                #Transpose to get the ancestors for each node 
+                self.matrix_of_ancestor = self.matrix_of_ancestor.transpose(1, 0)
+                self.matrix_of_ancestor = self.matrix_of_ancestor.unsqueeze(0).to(torch.device('cuda'))
 
     def forward(self, features, proposals, targets=None, logger=None):
         """
@@ -162,9 +139,9 @@ class ROIRelationHead(torch.nn.Module):
         # final classifier that converts the features into predictions
         # should corresponding to all the functions and layers after the self.context class
         refine_logits, relation_logits, add_losses = self.predictor(proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger)
-        
+
         relation_logits_raw = None
-        if self.cfg.MODEL.HSGG.REL_HIER or self.cfg.MODEL.PCPL_CENTER_LOSS:
+        if self.cfg.MODEL.PCPL_CENTER_LOSS:
             # relation_logits_raw of shape MODEL.ROI_RELATION_HEAD.CONTEXT_POOLING_DIM
             relation_logits, relation_logits_raw = relation_logits
 
@@ -187,7 +164,7 @@ class ROIRelationHead(torch.nn.Module):
                 # )
                 # if self.cfg.DEBUG:
                 #     import pdb; pdb.set_trace()
-                relation_probs_norm, labeling_prob, rel_labels_one_hot_count = self.balanced_norm(relation_logits, rel_labels, self.multi_label_training)
+                relation_probs_norm, labeling_prob, rel_labels_one_hot_count = self.balanced_norm(relation_logits, rel_labels)
                 # if rel_labels_one_hot_count is not None:
                 #     import pdb; pdb.set_trace()
                 
@@ -204,10 +181,10 @@ class ROIRelationHead(torch.nn.Module):
 
         # for test
         if not self.training:
-            result = self.post_processor((relation_logits, refine_logits), rel_pair_idxs, proposals, relation_probs_norm, labeling_prob, self.matrix_of_ancestor_rel, self.matrix_of_ancestor_obj)
+            result = self.post_processor((relation_logits, refine_logits), rel_pair_idxs, proposals, relation_probs_norm, labeling_prob, self.matrix_of_ancestor)
             return roi_features, result, {}, None, None
 
-        loss_relation, loss_refine, loss_relation_stl, loss_center, loss_gx, loss_avg_belief, loss_rel_concept, rel_features, rel_targets = self.loss_evaluator(proposals, rel_labels, relation_logits, refine_logits, stl_labels, relation_probs_norm, relation_logits_raw, rel_pair_idxs, labeling_prob, self.matrix_of_ancestor_rel, self.matrix_of_ancestor_obj, (self.rel_emb, self.rel_emb_func_vis, self.rel_emb_func_lan))
+        loss_relation, loss_refine, loss_relation_stl, loss_center, loss_gx, loss_avg_belief, rel_features, rel_targets = self.loss_evaluator(proposals, rel_labels, relation_logits, refine_logits, stl_labels, relation_probs_norm, relation_logits_raw, rel_pair_idxs, labeling_prob, self.matrix_of_ancestor)
 
         if self.cfg.MODEL.ATTRIBUTE_ON and isinstance(loss_refine, (list, tuple)):
             output_losses = dict(loss_rel=loss_relation, loss_refine_obj=loss_refine[0], loss_refine_att=loss_refine[1])
@@ -228,9 +205,6 @@ class ROIRelationHead(torch.nn.Module):
 
         if rel_labels_one_hot_count is not None:
             output_losses['rel_labels_one_hot_count'] = rel_labels_one_hot_count
-
-        if loss_rel_concept is not None:
-            output_losses['loss_rel_concept'] = loss_rel_concept
 
         output_losses.update(add_losses)
 

@@ -250,7 +250,6 @@ class MotifPredictor(nn.Module):
             self.freq_bias = FrequencyBias(config, statistics)
 
         self.pcpl_center_loss = config.MODEL.PCPL_CENTER_LOSS
-        self.h_sgg_rel = config.MODEL.HSGG.REL_HIER
 
     def forward(self, proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger=None):
         """
@@ -309,7 +308,7 @@ class MotifPredictor(nn.Module):
         # because in decoder_rnn, preds has been through a nms stage
         add_losses = {}
 
-        if self.pcpl_center_loss or self.h_sgg_rel:
+        if self.pcpl_center_loss:
             rel_dists = (rel_dists, prod_rep)
 
         if self.attribute_on:
@@ -370,7 +369,6 @@ class VCTreePredictor(nn.Module):
         self.freq_bias = FrequencyBias(config, statistics)
 
         self.pcpl_center_loss = config.MODEL.PCPL_CENTER_LOSS
-        self.h_sgg_rel = MODEL.HSGG.REL_HIER
 
     def forward(self, proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger=None):
         """
@@ -437,7 +435,7 @@ class VCTreePredictor(nn.Module):
                 binary_loss.append(F.binary_cross_entropy_with_logits(bi_pred, bi_gt))
             add_losses["binary_loss"] = sum(binary_loss) / len(binary_loss)
 
-        if self.pcpl_center_loss or self.h_sgg_rel:
+        if self.pcpl_center_loss:
             rel_dists = (rel_dists, prod_rep)
         
         return obj_dists, rel_dists, add_losses

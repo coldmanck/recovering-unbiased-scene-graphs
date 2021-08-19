@@ -31,9 +31,7 @@ class PostProcessor(nn.Module):
         balanced_norm_test_only=False,
         balanced_norm_as_soft_label=False,
         test_with_label_prob_only=False,
-        multi_label_training=False,
         c_hmc_test=False,
-        comp_instance_recalls=False,
     ):
         """
         Arguments:
@@ -63,12 +61,10 @@ class PostProcessor(nn.Module):
         self.test_with_label_prob_only = test_with_label_prob_only
         self.use_balanced_norm = False if bal_reweight_only or balanced_norm_test_only or balanced_norm_as_soft_label or test_with_label_prob_only else use_balanced_norm
 
-        self.multi_label_training = multi_label_training
         self.c_hmc_test = c_hmc_test
-        self.comp_instance_recalls = comp_instance_recalls
         
 
-    def forward(self, x, rel_pair_idxs, boxes, relation_probs_norm=None, labeling_prob=None, matrix_of_ancestor_rel=None, matrix_of_ancestor_obj=None):
+    def forward(self, x, rel_pair_idxs, boxes, relation_probs_norm=None, labeling_prob=None, matrix_of_ancestor=None):
         """
         Arguments:
             x (tuple[tensor, tensor]): x contains the relation logits
@@ -132,7 +128,6 @@ class PostProcessor(nn.Module):
                 boxlist = BoxList(box.get_field('boxes_per_cls')[torch.arange(batch_size, device=device), regressed_box_idxs], box.size, 'xyxy')
             boxlist.add_field('pred_labels', obj_class) # (#obj, )
             boxlist.add_field('pred_scores', obj_scores) # (#obj, )
-            boxlist.add_field('pred_class_prob', obj_class_prob)
 
             if self.attribute_on:
                 boxlist.add_field('pred_attributes', att_prob)
@@ -142,24 +137,23 @@ class PostProcessor(nn.Module):
             obj_scores1 = obj_scores[rel_pair_idx[:, 1]]
             if self.test_with_label_prob_only:
                 assert labeling_prob is not None
+                # import pdb; pdb.set_trace()
                 rel_class_prob = torch.cat([labeling_prob.clone().detach().view(1, -1)] * rel_logit.shape[0])
-            elif self.use_balanced_norm and not self.multi_label_training:
+            elif self.use_balanced_norm:
                 end_idx = start_idx + rel_logit.shape[0]
                 rel_class_prob = relation_probs_norm[start_idx:end_idx]
                 start_idx = end_idx
-            elif self.multi_label_training:
-                if self.use_balanced_norm:
-                    end_idx = start_idx + rel_logit.shape[0]
-                    rel_class_prob = relation_probs_norm[start_idx:end_idx]
-                    start_idx = end_idx
-                else:
-                    rel_class_prob = torch.sigmoid(rel_logit)
-                if self.c_hmc_test:
-                    # rel_class_prob = torch.cat([rel_logit[:, 0].view(-1, 1), get_constr_out(rel_logit[:, 1:], matrix_of_ancestor_rel)], dim=1).float()
-                    rel_class_prob = get_constr_out(rel_class_prob, matrix_of_ancestor_rel).float()
+            elif self.c_hmc_test:
+                # import pdb; pdb.set_trace()
+                rel_logit = torch.sigmoid(rel_logit)
+                # rel_class_prob = torch.cat([rel_logit[:, 0].view(-1, 1), get_constr_out(rel_logit[:, 1:], matrix_of_ancestor)], dim=1).float()
+                rel_class_prob = get_constr_out(rel_logit, matrix_of_ancestor).float()
             else:
+                # if self.balanced_norm_test_only:
+                #     import pdb; pdb.set_trace()
                 rel_class_prob = F.softmax(rel_logit, -1)
                 if self.balanced_norm_as_soft_label:
+                    # import pdb; pdb.set_trace()
                     assert labeling_prob is not None
                     rel_class_prob /= labeling_prob
             
@@ -178,8 +172,6 @@ class PostProcessor(nn.Module):
             # TODO Kaihua: how about using weighted some here?  e.g. rel*1 + obj *0.8 + obj*0.8
             triple_scores = rel_scores * obj_scores0 * obj_scores1
             _, sorting_idx = torch.sort(triple_scores.view(-1), dim=0, descending=True)
-            # if self.comp_instance_recalls:
-            #     import pdb; pdb.set_trace()
             rel_pair_idx = rel_pair_idx[sorting_idx]
             rel_class_prob = rel_class_prob[sorting_idx]
             rel_labels = rel_class[sorting_idx]
@@ -215,9 +207,7 @@ def make_roi_relation_post_processor(cfg, labeling_prob=None):
     balanced_norm_test_only = cfg.MODEL.BALANCED_NORM_TEST_ONLY
     balanced_norm_as_soft_label = cfg.MODEL.BALANCED_NORM_AS_SOFT_LABEL
     test_with_label_prob_only = cfg.TEST.WITH_LABEL_PROB_ONLY
-    multi_label_training = cfg.TRAIN.MULTI_LABEL_TRAINING
     c_hmc_test = cfg.HMC.C_HMC_TEST
-    comp_instance_recalls = cfg.TEST.INSTANCE_RECALLS
 
     postprocessor = PostProcessor(
         attribute_on,
@@ -232,8 +222,6 @@ def make_roi_relation_post_processor(cfg, labeling_prob=None):
         balanced_norm_test_only,
         balanced_norm_as_soft_label,
         test_with_label_prob_only,
-        multi_label_training,
         c_hmc_test,
-        comp_instance_recalls,
     )
     return postprocessor

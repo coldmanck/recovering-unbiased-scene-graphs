@@ -20,7 +20,7 @@ class VGDataset(torch.utils.data.Dataset):
 
     def __init__(self, split, img_dir, roidb_file, dict_file, image_file, transforms=None,
                 filter_empty_rels=True, num_im=-1, num_val_im=5000,
-                filter_duplicate_rels=True, filter_non_overlap=True, flip_aug=False, custom_eval=False, custom_path='', stl_train=False, stl_train_label_path='', stl_train_norm=False, stl_eval_zero_out_nan=False, vis_mode=False, mode='predcls', concept_augmented_training=False, cogtree_path='', multi_label_training=False, h_data_aug_train=False, h_data_aug_test=False, ancestor_mat_path='', h_sgg_obj=False, h_sgg_rel=False):
+                filter_duplicate_rels=True, filter_non_overlap=True, flip_aug=False, custom_eval=False, custom_path='', stl_train=False, stl_train_label_path='', stl_train_norm=False, stl_eval_zero_out_nan=False, vis_mode=False, mode='predcls', concept_augmented_training=False, cogtree_path='', multi_label_training=False):
         """
         Torch dataset for VisualGenome
         Parameters:
@@ -83,15 +83,6 @@ class VGDataset(torch.utils.data.Dataset):
                 self.cogtree = pickle.load(f)
         
         self.multi_label_training = multi_label_training
-        self.h_data_aug_train = h_data_aug_train
-        self.h_data_aug_test = h_data_aug_test
-        if self.h_data_aug_train or self.h_data_aug_test:
-            assert ancestor_mat_path != '', 'Error: ancestor matrix\'s path cannot be empty!'
-            with open(ancestor_mat_path, 'rb') as f:
-                self.matrix_of_ancestor = pickle.load(f) # f
-
-            self.matrix_of_ancestor = torch.tensor(self.matrix_of_ancestor)
-            assert self.matrix_of_ancestor.shape[0] == self.matrix_of_ancestor.shape[1] == 51
         # self.c_hmc = c_hmc # coherent hierarchical multi-label classification
         # if self.c_hmc:
         #     # Given n classes, hierarchy_mat is an (n x n) matrix where R_ij = 1 if class i is ancestor of class j
@@ -121,12 +112,6 @@ class VGDataset(torch.utils.data.Dataset):
             self.filenames, self.img_info = load_image_filenames(img_dir, image_file) # length equals to split_mask
             self.filenames = [self.filenames[i] for i in np.where(self.split_mask)[0]]
             self.img_info = [self.img_info[i] for i in np.where(self.split_mask)[0]]
-
-        # Hierarchical SGG
-        self.h_sgg_obj = h_sgg_obj
-        self.h_sgg_rel = h_sgg_rel
-        # if self.h_sgg_rel:
-        #     pass
 
         # self.get_groundtruth(0)
 
@@ -212,6 +197,7 @@ class VGDataset(torch.utils.data.Dataset):
         if self.filter_duplicate_rels:
             # Filter out dupes!
             assert self.split == 'train'
+            old_size = relation.shape[0]
             all_rel_sets = defaultdict(set)
             for (o0, o1, r) in relation:
                 all_rel_sets[(o0, o1)].add(r)
@@ -229,17 +215,13 @@ class VGDataset(torch.utils.data.Dataset):
                 relation_map[int(relation[i,0]), int(relation[i,1])] = int(relation[i,2])
         target.add_field("relation", relation_map, is_triplet=True)
 
+        if self.multi_label_training:
+            relation_map_multi_label = torch.zeros((num_box, num_box, 51), dtype=torch.int64)
+            for i in range(relation.shape[0]):
+                relation_map_multi_label[int(relation[i,0]), int(relation[i,1]), int(relation[i,2])] = 1
+
         if evaluation:
             target = target.clip_to_image(remove_empty=False)
-            if self.h_data_aug_test:
-                all_rel_sets = defaultdict(set)
-                for (o0, o1, r) in relation:
-                    # all_rel_sets[(o0, o1)].add(r)
-                    parent_pred_idxs = torch.nonzero(self.matrix_of_ancestor[:, int(relation[i,2])])
-                    for p in parent_pred_idxs:
-                        all_rel_sets[(o0, o1)].add(p[0])
-                relation = [(k[0], k[1], v) for k, vs in all_rel_sets.items() for v in vs]
-                relation = np.array(relation, dtype=np.int32)
             target.add_field("relation_tuple", torch.LongTensor(relation)) # for evaluation
             return target
         else:
@@ -259,13 +241,6 @@ class VGDataset(torch.utils.data.Dataset):
                 # target.add_field('relation_stl_truth_table', relation_stl_truth_table, is_triplet=True)
 
             if self.multi_label_training:
-                relation_map_multi_label = torch.zeros((num_box, num_box, 51), dtype=torch.int64)
-                for i in range(relation.shape[0]):
-                    relation_map_multi_label[int(relation[i,0]), int(relation[i,1]), int(relation[i,2])] = 1
-                    if self.h_data_aug_train:
-                        parent_pred_idxs = self.matrix_of_ancestor[:, int(relation[i,2])] != 0
-                        relation_map_multi_label[int(relation[i,0]), int(relation[i,1]), 
-                        parent_pred_idxs] = 1
                 target.add_field('relation_map_multi_label', relation_map_multi_label, is_triplet=True)
                 
             target = target.clip_to_image(remove_empty=True)
@@ -508,7 +483,6 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
         if i_rel_start >= 0:
             predicates = _relation_predicates[i_rel_start : i_rel_end + 1]
             obj_idx = _relations[i_rel_start : i_rel_end + 1] - i_obj_start # range is [0, num_box)
-            # import pdb; pdb.set_trace()
             assert np.all(obj_idx >= 0)
             assert np.all(obj_idx < boxes_i.shape[0])
             rels = np.column_stack((obj_idx, predicates)) # (num_rel, 3), representing sub, obj, and pred
