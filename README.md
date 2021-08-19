@@ -157,13 +157,12 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10032 --
 
 ## Citation
 ```
-@misc{chiou2021recovering,
-      title={Recovering the Unbiased Scene Graphs from the Biased Ones}, 
-      author={Meng-Jiun Chiou and Henghui Ding and Hanshu Yan and Changhu Wang and Roger Zimmermann and Jiashi Feng},
-      year={2021},
-      eprint={2107.02112},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@inproceedings{chiou2021recovering,
+               title={Recovering the Unbiased Scene Graphs from the Biased Ones},
+               author={Chiou, Meng-Jiun and Ding, Henghui and Yan, Hanshu and Wang, Changhu and Zimmermann, Roger and Feng, Jiashi},
+               booktitle={Proceedings of the 29th ACM International Conference on Multimedia},
+               pages={},
+               year={2021}
 }
 ```
 
