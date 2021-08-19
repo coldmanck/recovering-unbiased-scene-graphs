@@ -45,6 +45,8 @@ We provide two ways to install:
 Please refer to [DATASET.md](DATASET.md) for downloading the Visual Genome dataset.
 
 ## Models
+Note that as of now the codebase is still pretty messy, but there is no plan for refactoring the codebase currently. Feel free to open a PR if you want to fix any bug or want to help the codebase clearer!
+
 Note that before running any of the following command, ensure you have the following options fixed (see [defaults.py](maskrcnn_benchmark/config/defaults.py) for complete options and their default values):
 - `--master_port`: you have to choose a different port for each (training/testing) command. For example, if you have one command running with `--master_port 10025`, pass a different port like `--master_port 10026` when you start another command.
 - `CUDA_VISIBLE_DEVICES`: choose the GPUs that you are going to use. For example, `CUDA_VISIBLE_DEVICES=0,1` use the first two GPUs.
