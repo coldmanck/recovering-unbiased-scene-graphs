@@ -35,10 +35,10 @@ Prerequisites for starting a training/validation session:
 - 2x NVIDIA GPUs with at least 16G memory each (for training); or 1x NVIDIA GPU with at least 4G memory (for validation)
 - CUDA/cudnn installed (with version matched your PyTorch)
 
-Note that we use PyTorch 1.8.0 (should be compatible with versions 0.4.0 ~ 1.9.0) with CUDA 11.1
+Note that we use PyTorch 1.8.0 (should be compatible with versions 0.4.0 ~ 1.9.0) with CUDA 11.1. The installation of PyTorch is included in the following script.
 
 We provide two ways to install:
-- (Recommended) Run `bash install_sgg_env.sh`. That's it!
+- (Recommended) Run `bash install_sgg_env.sh`. That's it! Any doubt, run the commands one-by-one.
 - Follow [INSTALL.md](INSTALL.md) to install the requirements step-by-step.
 
 ## Data
@@ -47,13 +47,15 @@ Please refer to [DATASET.md](DATASET.md) for downloading the Visual Genome datas
 ## Models
 Note that as of now the codebase is still pretty messy, but there is no plan for refactoring the codebase currently. Feel free to open a PR if you want to fix any bug or want to help the codebase clearer!
 
+First of all, enter the environment you just create by `conda activate scene_graph_benchmark`. 
+
 Note that before running any of the following command, ensure you have the following options fixed (see [defaults.py](maskrcnn_benchmark/config/defaults.py) for complete options and their default values):
-- `--master_port`: you have to choose a different port for each (training/testing) command. For example, if you have one command running with `--master_port 10025`, pass a different port like `--master_port 10026` when you start another command.
+- `--master_port`: you have to choose a different port for each (training/testing) command. For example, if you already have one command running with `--master_port 10025`, you'd need to pass another port like `--master_port 10026` when you start another command.
 - `CUDA_VISIBLE_DEVICES`: choose the GPUs that you are going to use. For example, `CUDA_VISIBLE_DEVICES=0,1` use the first two GPUs.
 - `--nproc_per_node`: this should correspond to the number of GPUs you used for each command. For example, if you pass `CUDA_VISIBLE_DEVICES=0,1`, you should also pass `--nproc_per_node 2`. 
 - `TEST.IMS_PER_BATCH`: For experiments in PredCls mode, the default value is `48`; however, for experiments in SGCls & SGDet modes (excl. PredCls mode), following the existing codebase we only evaluate **one** image on each GPU. That is, for training/validation experiments in SGCls/SGDet mode, if you pass `CUDA_VISIBLE_DEVICES=0,1` and `--nproc_per_node 2`, you should pass `TEST.IMS_PER_BATCH 2`.
 - `MODEL.ROI_RELATION_HEAD.USE_GT_BOX` and `MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL`: For all commands listed below, the **PredCls** mode is used by default and thus both these two options are set as `True`. To change to **SGCls**, pass `MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL False` while keep `MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True`. To change to **SGDet**, set the both options to `False`. If you don't understand the differences between these three modes, refer to the paper for details.
-- `OUTPUT_DIR`: this option is not only meant for the output directory but also define the name of the experiment. Remember to modify accordingly. For example, `output/motif-precls-exmp-pcpl` means the *PCPL* model with *MOTIFS* backbone trained in *PredCls* mode.
+- `OUTPUT_DIR`: this option is not only meant for the output directory but also the name of the experiment. Remember to modify accordingly. For example, `output/motif-precls-exmp-pcpl` means the *PCPL* model with *MOTIFS* backbone trained in *PredCls* mode.
 - `MODEL.ROI_RELATION_HEAD.PREDICTOR`: For all commands listed below, the MOTIFS SGG backbone (`MotifPredictor`) is used by default. Change to `VCTreePredictor` to use the VCTree backbone.
 
 For the MOTIFS baseline and MOTIFS-DLFE, we provide the trained models (checkpoint) for verification purpose. Please download from [here](https://drive.google.com/file/d/1aR612qOpQc1SfMmX1SSVLWGzggfP69xE/view?usp=sharing)* and zip to `output/` under the root folder of this codebase, and then run the following validation commands directly. *Use [gdown](https://github.com/wkentaro/gdown) if needed :)
@@ -106,7 +108,8 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --
 <summary>
 TDE (Total Direct Effect)
 </summary>
-Note that `MODEL.ROI_RELATION_HEAD.PREDICTOR CausalAnalysisPredictor` is fixed for TDE. To change backbone models to VCTRee, pass `MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER vctree`.
+
+Note that `MODEL.ROI_RELATION_HEAD.PREDICTOR CausalAnalysisPredictor` is fixed for TDE. To change the backbone model to VCTree, pass `MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER vctree`.
 
 - Training
 ```
@@ -150,7 +153,7 @@ CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --master_port 10025 
 
 - Validation
 ```
-CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10032 --nproc_per_node=1 tools/relation_test_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor TEST.IMS_PER_BATCH 48 DTYPE "float16" GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-stl-correct-10xslr TEST.STL_MODE True TEST.STL_TRAINING_SET_LABELING_PROB output/motif-precls-exmp/inference/VG_stanford_filtered_with_attribute_test/train_labeling_prob_raw.pt
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --nproc_per_node=1 tools/relation_test_net.py --config-file "configs/e2e_relation_X_101_32_8_FPN_1x.yaml" MODEL.ROI_RELATION_HEAD.USE_GT_BOX True MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True MODEL.ROI_RELATION_HEAD.PREDICTOR MotifPredictor TEST.IMS_PER_BATCH 48 DTYPE "float16" GLOVE_DIR glove MODEL.PRETRAINED_DETECTOR_CKPT checkpoints/pretrained_faster_rcnn/model_final.pth OUTPUT_DIR output/motif-precls-exmp-stl-correct-10xslr TEST.STL_MODE True TEST.STL_TRAINING_SET_LABELING_PROB output/motif-precls-exmp/inference/VG_stanford_filtered_with_attribute_test/train_labeling_prob_raw.pt
 ```
 
 </details>
