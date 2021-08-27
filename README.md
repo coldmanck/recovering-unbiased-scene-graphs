@@ -58,7 +58,7 @@ Note that before running any of the following command, ensure you have the follo
 - `OUTPUT_DIR`: this option is not only meant for the output directory but also the name of the experiment. Remember to modify accordingly. For example, `output/motif-precls-exmp-pcpl` means the *PCPL* model with *MOTIFS* backbone trained in *PredCls* mode.
 - `MODEL.ROI_RELATION_HEAD.PREDICTOR`: For all commands listed below, the MOTIFS SGG backbone (`MotifPredictor`) is used by default. Change to `VCTreePredictor` to use the VCTree backbone.
 
-For the MOTIFS baseline and MOTIFS-DLFE, we provide the trained models (checkpoint) for verification purpose. Please download from [here](https://drive.google.com/file/d/1aR612qOpQc1SfMmX1SSVLWGzggfP69xE/view?usp=sharing)* and zip to `output/` under the root folder of this codebase, and then run the following validation commands directly. *Use [gdown](https://github.com/wkentaro/gdown) if needed :)
+For the MOTIFS baseline and MOTIFS-DLFE, we provide the trained models (checkpoint) for verification purpose. Please download from [here](https://drive.google.com/file/d/1aR612qOpQc1SfMmX1SSVLWGzggfP69xE/view?usp=sharing)* and unzip to `output/` under the root folder of this codebase, followed by running the following validation commands. *Use [gdown](https://github.com/wkentaro/gdown) if needed :)
 
 ### Baseline (Backbone Only)
 - Training
