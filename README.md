@@ -4,7 +4,7 @@
 <div align="center">
     
 **Recovering the Unbiased Scene Graphs from the Biased Ones**<br>
-[[Paper]](https://arxiv.org/pdf/2107.02112.pdf) [[Slides]](files/slides.pdf) [[Poster]](files/poster.pdf) [Video]<br><br>
+[[arXiv Paper]](https://arxiv.org/pdf/2107.02112.pdf) [[Proceeding Paper]](https://dl.acm.org/doi/pdf/10.1145/3474085.3475297) [[Slides]](files/slides.pdf) [[Poster]](files/poster.pdf) [[Video]](https://dl.acm.org/doi/10.1145/3474085.3475297#sec-supp)<br><br>
 [Meng-Jiun Chiou](http://coldmanck.github.io/)<sup>1</sup>, [Henghui Ding](https://henghuiding.github.io/)<sup>2</sup>, [Hanshu Yan](https://sites.google.com/view/hanshuyan/home)<sup>1</sup>, [Changhu Wang](https://cn.linkedin.com/in/changhu-wang-66342115)<sup>2</sup>, [Roger Zimmermann](https://www.comp.nus.edu.sg/~rogerz/roger.html)<sup>1</sup> and [Jiashi Feng](https://sites.google.com/site/jshfeng/home)<sup>1</sup><br>
 <sup>1</sup>National University of Singapore <sup>2</sup>ByteDance AI Lab
 </div>
@@ -164,7 +164,7 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --
     title={Recovering the Unbiased Scene Graphs from the Biased Ones},
     author={Chiou, Meng-Jiun and Ding, Henghui and Yan, Hanshu and Wang, Changhu and Zimmermann, Roger and Feng, Jiashi},
     booktitle={Proceedings of the 29th ACM International Conference on Multimedia},
-    pages={},
+    pages={1581–1590},
     year={2021}
 }
 ```
