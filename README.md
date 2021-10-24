@@ -173,4 +173,4 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --
 Our codebase is based on [Scene-Graph-Benchmark.pytorch](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch).
 
 ## Enquiry
-Please check if your issue has been addressed in discussions of the Issue sesction of this repositoy. Otherwise, feel free to open an issure or drop an email to mengjiun.chiou at u.nus.edu
+Please check if your issue has been addressed in the discussions of the Issue section of this repository. Otherwise, feel free to open an issue or drop an email to mengjiun.chiou at u.nus.edu
