@@ -144,7 +144,7 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --
 <summary>
 STL (Soft Transfer Learning)
 </summary>
-Note that the learning rate for STL model is 10x smaller than the others. The file `train_labeling_prob_raw.pt` should be generated after training.
+Note that the learning rate for STL model is 10x smaller than the others. The file `train_labeling_prob_raw.pt` should be generated after training. The file `train_eval_results.pytorch` have to be generated in advance, by evaluating/inference any of the SGG model with [the validation script](https://github.com/coldmanck/recovering-unbiased-scene-graphs/blob/c0586c4805a2a3f88edf40ffbd04db77c82611f5/maskrcnn_benchmark/engine/inference.py#L105-L123). For the case of STL, if you need `output/motif-precls-exmp/inference/VG_stanford_filtered_with_attribute_test/train_eval_results.pytorch`, you have to inference the trained SGG model of `motifs-precls-exmp`.
 
 - Training
 ```
