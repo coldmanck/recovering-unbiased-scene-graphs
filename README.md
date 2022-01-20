@@ -161,9 +161,6 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --
 
 </details>
 
-## Computing Head/Middle/Tail Recalls 
-The top-15/middle-20/last-15 predicate classes' ng-mR are simply averaged. Please refer to [this jupyter notebook](vis_class_recall.ipynb) (scroll all the way down) for some hints to compute the recalls. 
-
 ## Citation
 ```
 @inproceedings{chiou2021recovering,
