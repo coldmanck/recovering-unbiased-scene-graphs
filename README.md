@@ -109,7 +109,7 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --
 TDE (Total Direct Effect)
 </summary>
 
-Note that `MODEL.ROI_RELATION_HEAD.PREDICTOR CausalAnalysisPredictor` is fixed for TDE. To change the backbone model to VCTree, pass `MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER vctree`. Refer to [the original paper](https://arxiv.org/abs/2002.11949) for more details.
+Note that `MODEL.ROI_RELATION_HEAD.PREDICTOR CausalAnalysisPredictor` is fixed for TDE. To change the backbone model to VCTree, pass `MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER vctree`.
 
 - Training
 ```
@@ -127,8 +127,6 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 10025 --
 <summary>
 PCPL (Predicate-Correlation Perception Learning)
 </summary>
-    
-Refer to [the original paper](https://arxiv.org/abs/2009.00893) for more details.
 
 - Training
 ```
