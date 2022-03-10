@@ -50,8 +50,8 @@ python setup.py install --cuda_ext --cpp_ext
 
 # install PyTorch Detection
 cd $INSTALL_DIR
-git clone https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch.git
-cd scene-graph-benchmark
+git clone https://github.com/coldmanck/recovering-unbiased-scene-graphs.git
+cd recovering-unbiased-scene-graphs
 
 # the following will install the lib with
 # symbolic links, so that you can modify
