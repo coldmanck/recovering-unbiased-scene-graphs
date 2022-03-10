@@ -19,15 +19,15 @@ Most of the requirements of this projects are exactly the same as [maskrcnn-benc
 # for that, check that `which conda`, `which pip` and `which python` points to the
 # right path. From a clean conda env, this is what you need to do
 
-conda create --name scene_graph_benchmark
-conda activate scene_graph_benchmark
+conda create --name recover_sg
+conda activate recover_sg
 
 # this installs the right pip and dependencies for the fresh python
 conda install ipython
 conda install scipy
 conda install h5py
 
-# scene_graph_benchmark and coco api dependencies
+# recover_sg and coco api dependencies
 pip install ninja yacs cython matplotlib tqdm opencv-python overrides
 
 # follow PyTorch installation in https://pytorch.org/get-started/locally/
